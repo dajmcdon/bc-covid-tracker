@@ -4,7 +4,7 @@ on:
   push:
     paths: ['**.Rmd']
   schedule:
-    cron: '30 11,23 * * *' # should build at 430, 1630 PDT
+    - cron: '30 11,23 * * *' # should build at 430, 1630 PDT
 
 name: render-rmarkdown
 
