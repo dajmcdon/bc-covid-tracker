@@ -152,6 +152,7 @@ ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
   theme(legend.title = element_blank(), legend.position = "bottom")
 
 pop <- read.csv("https://raw.githubusercontent.com/mountainMath/BCCovidSnippets/main/data/ha_pop.csv")
+
 ```
 
 ### Log scale
