@@ -1,0 +1,315 @@
+---
+title: "BC COVID TRACKER"
+author: "Daniel J. McDonald"
+date: "Last updated at `r format(Sys.time(), '%d %B, %Y - %H:%M',tz='America/Vancouver')`"
+output: html_document
+---
+
+```{r setup-data, warning = FALSE, message = FALSE, echo=FALSE}
+library(CanCovidData)
+library(magrittr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+library(scales)
+n_recent <- 90
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4, echo = FALSE)
+dat <- get_british_columbia_case_data() %>%
+  rename(HA = `Health Authority`, Date = `Reported Date`,
+         Age = `Age group`) %>%
+  filter(Date >= ymd("2020-03-01"))
+cases <- dat %>%
+  count(Date, name = "Cases")
+cases_ha <- dat %>% 
+  filter(HA != "Out of Canada") %>%
+  count(Date, HA, name = "Cases")
+cases_ha <- cases_ha %>%
+  tidyr::expand(Date, HA) %>%
+  left_join(cases_ha) %>%
+  mutate(Cases = coalesce(Cases, 0)) %>%
+  group_by(HA)
+cases_age <- dat %>%
+  count(Date, Age, name = "Cases")
+cases_age <- cases_age %>%
+  tidyr::expand(Date, Age) %>%
+  left_join(cases_age) %>%
+  mutate(Cases = coalesce(Cases, 0)) %>%
+  group_by(Age)
+theme_set(theme_bw(base_family = "Times", base_size = 16))
+log10_breaks = c(0,2,5,10,25,50,100,250,500,1000,2500,5000)
+```
+
+
+```{r my-kernel-smoother}
+my_ks <- function(x, y, band = 14, deg = 0L) {
+  dmat <- as.matrix(dist(x))
+  K <- dnorm(dmat, 0, sd = band * .39) # puts 20% outside band
+  if (deg == 1L) { # local linear
+    W <- K * dmat
+    S1 <- colSums(W)
+    S2 <- colSums(W * dmat)
+    K <- K * (1 -  sweep(K, 2, S1/S2, "*"))
+  } else {
+    K <- sweep(K, 1, rowSums(K), '/')
+  }
+  fit <- K %*% y
+  loocvs <- (y - fit)^2 / (1 - diag(K))^2
+  loocv <- mean( (y - fit)^2 / (1 - diag(K))^2 )
+  out <- list(
+    fit = fit, 
+    loocv = loocv, 
+    cvse = sd(loocvs) / sqrt(length(y) - 1)
+  )
+  out
+}
+
+my_smooth <- function(x, y, 
+                      minband = 7, deg = 1L, maxband = 21, nbands = 25,
+                      best = c("bands.1se", "bands.min")) {
+  best <- match.arg(best)
+  bands <- seq(minband, maxband, length.out = nbands)
+  l <- lapply(bands, function(b) my_ks(x, y, b, deg))
+  cvm <- sapply(l, function(x) x$loocv)
+  cvsd <- sapply(l, function(x) x$cvse)
+  cvmin = min(cvm, na.rm = TRUE)
+  idmin = cvm <= cvmin
+  bands.min = max(bands[idmin], na.rm = TRUE)
+  idmin = match(bands.min, bands)
+  selected <- idmin
+  semin = (cvm + cvsd)[idmin]
+  id1se = cvm <= semin
+  bands.1se = max(bands[id1se], na.rm = TRUE)
+  id1se = match(bands.1se, bands)
+  if (best == "bands.1se") selected <- id1se
+  return(list(fit = l[[selected]]$fit, 
+              loocv = cvm, 
+              bands.min = bands.min,
+              bands.1se = bands.1se))
+}
+
+daily <- function(x) decimal_date(x) * 365
+```
+
+
+
+
+# Recent data (last `r n_recent` days) {.tabset}
+
+```{r}
+recent_cases <- cases %>% 
+  filter(Date >= Sys.Date() - n_recent) %>%
+  mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1)
+
+recent_ha <- cases_ha %>% 
+  filter(Date >= Sys.Date() - n_recent) %>%
+  mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit)-1)
+
+recent_age <- cases_age %>%
+  filter(Age != "Unknown", Date >= Sys.Date() - n_recent) %>%
+  mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1)
+```
+
+## All BC {.tabset}
+
+### Raw
+
+```{r}
+ggplot(recent_cases, aes(Date, Cases)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=s), size = 1.5, colour = "darkblue")
+```
+
+### Log scale 
+
+```{r}
+ggplot(recent_cases, aes(Date, Cases)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  ylab("Cases (log scale)")
+```
+
+
+
+### Per capita
+
+
+## By Health Authority {.tabset}
+
+
+### Raw
+```{r}
+ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = s), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  theme(legend.title = element_blank(), legend.position = "bottom")
+
+pop <- read.csv("https://raw.githubusercontent.com/mountainMath/BCCovidSnippets/main/data/ha_pop.csv")
+recent_ha 
+
+```
+
+### Log scale
+
+```{r}
+ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ls), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  ylab("Cases (log scale)") +
+  theme(legend.title = element_blank(), legend.position = "bottom")
+```
+
+### Per capita
+
+## By Age Group {.tabset}
+
+### Raw 
+
+```{r}
+ggplot(recent_age, aes(Date, Cases, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = s), size = 1.5) +
+  scale_colour_viridis_d() +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom")
+```
+
+### Log scale
+
+```{r}
+ggplot(recent_age, aes(Date, Cases, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ls), size = 1.5) +
+  scale_colour_viridis_d() + 
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom") +
+  ylab("Cases (log scale)")
+```
+
+### Per capita
+
+
+<hr/>
+
+# Since March 2020 {.tabset}
+
+```{r}
+all_cases <- cases %>% 
+  mutate(
+    s = my_smooth(daily(Date), Cases, deg = 0L, 
+                  minband = 14, maxband = 35)$fit,
+    ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
+                       minband = 14, maxband = 35)$fit) - 1)
+all_ha <- cases_ha %>% 
+  mutate(
+    s = my_smooth(daily(Date), Cases, deg = 0L, 
+                  minband = 14, maxband = 35)$fit,
+    ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
+                       minband = 14, maxband = 35)$fit) - 1)
+all_age <- cases_age %>%
+  filter(Age != "Unknown") %>%
+  mutate(
+    s = my_smooth(daily(Date), Cases, deg = 0L, 
+                  minband = 14, maxband = 35)$fit,
+    ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
+                       minband = 14, maxband = 35)$fit) - 1)
+```
+
+
+## All BC {.tabset}
+
+### Raw scale
+
+```{r}
+ggplot(all_cases, aes(Date, Cases)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Log scale
+
+```{r}
+ggplot(all_cases, aes(Date, Cases)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  ylab("Cases (log scale)") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Per capita
+
+## By Health Authority {.tabset}
+
+### Raw
+
+```{r}
+ggplot(all_ha, aes(Date, Cases, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = s), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  theme(legend.title = element_blank(), legend.position = "bottom") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Log scale
+
+```{r}
+ggplot(all_ha, aes(Date, Cases, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ls), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  ylab("Cases (log scale)") +
+  theme(legend.title = element_blank(), legend.position = "bottom") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Per capita
+
+## By Age Group {.tabset}
+
+### Raw
+
+```{r}
+
+ggplot(all_age, aes(Date, Cases, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = s), size = 1.5) +
+  scale_colour_viridis_d() +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Log scale
+
+```{r}
+ggplot(all_age, aes(Date, Cases, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ls), size = 1.5) +
+  scale_colour_viridis_d() + 
+  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
+                     breaks = log10_breaks) +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom") +
+  ylab("Cases (log scale)") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
+
+### Per capita
+
