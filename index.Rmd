@@ -119,7 +119,7 @@ recent_age <- cases_age %>%
 ### Raw
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
+g <- ggplot(recent_cases, aes(Date, Cases)) +
   geom_point(colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=s), size = 1.5, colour = "darkblue")
 ```
