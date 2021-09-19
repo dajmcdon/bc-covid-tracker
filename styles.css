@@ -1,0 +1,24 @@
+body {
+  font-family: times, serif;
+  color: #000000;
+}
+
+h1, h2, h3 {
+  font-family: times, serif;
+}
+
+.header-panel {
+  background-color: #041E42;
+}
+
+.pages h1 {
+  color: #041E42;
+}
+
+.nav-tabs {
+    background: #041E42
+}
+
+.pages .nav-tabs>li.active>a {
+  background-color: #0055B7 !important;
+}

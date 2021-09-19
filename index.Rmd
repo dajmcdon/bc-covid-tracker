@@ -1,8 +1,9 @@
 ---
-title: "BC COVID TRACKER"
+title: "BC COVID Tracker"
 author: "Daniel J. McDonald"
 date: "Last updated at `r format(Sys.time(), '%d %B, %Y - %H:%M',tz='America/Vancouver')`"
-output: html_document
+output: rmdformats::material
+css: styles.css
 ---
 
 ```{r setup-data, warning = FALSE, message = FALSE, echo=FALSE}
