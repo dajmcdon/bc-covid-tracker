@@ -22,9 +22,15 @@ jobs:
         uses: r-lib/actions/setup-pandoc@v1
       - name: Setup R
         uses: r-lib/actions/setup-r@v1
-      - name: Install packages
-        uses: r-lib/actions/setup-renv@v1
-
+      - name: Install remotes package
+        run: |
+          Rscript -e 'install.packages("remotes")'
+      - name: Install CRAN Packages
+        run: |
+          Rscript -e 'install.packages(c("rmarkdown","knitr","rmdformats","dplyr","ggplot2","magrittr","lubridate","tidyr","scales"), depend = TRUE)'
+      - name: Install GitHub packages
+        run: |
+          Rscript -e 'remotes::install_github("mountainMath/CanCovidData")
 
       - name: Render Rmarkdown files
         run: |
