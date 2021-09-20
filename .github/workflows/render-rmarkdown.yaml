@@ -30,7 +30,7 @@ jobs:
           Rscript -e 'install.packages(c("rmarkdown","knitr","rmdformats","dplyr","ggplot2","magrittr","lubridate","tidyr","scales"), depend = TRUE)'
       - name: Install GitHub packages
         run: |
-          Rscript -e 'remotes::install_github("mountainMath/CanCovidData")
+          Rscript -e 'remotes::install_github("mountainMath/CanCovidData")'
 
       - name: Render Rmarkdown files
         run: |

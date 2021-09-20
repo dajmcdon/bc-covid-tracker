@@ -236,7 +236,6 @@ ggplot(all_cases, aes(Date, Cases)) +
   geom_point(colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
   scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
-
 ```
 
 ### Log scale
