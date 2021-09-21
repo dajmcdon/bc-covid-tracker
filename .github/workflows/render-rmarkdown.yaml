@@ -34,7 +34,7 @@ jobs:
 
       - name: Render Rmarkdown files
         run: |
-          Rscript -e 'rmarkdown::render("index.Rmd)'
+          Rscript -e 'rmarkdown::render("index.Rmd")'
 
       - name: Move it
         run: |
