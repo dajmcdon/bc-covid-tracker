@@ -39,6 +39,7 @@ cases_age <- cases_age %>%
   group_by(Age)
 theme_set(theme_bw(base_family = "Times", base_size = 16))
 log10_breaks = c(0,2,5,10,25,50,100,250,500,1000,2500,5000)
+
 ```
 
 
