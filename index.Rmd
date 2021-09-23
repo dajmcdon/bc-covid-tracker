@@ -20,6 +20,10 @@ dat <- get_british_columbia_case_data() %>%
   rename(HA = `Health Authority`, Date = `Reported Date`,
          Age = `Age group`) %>%
   filter(Date >= ymd("2020-03-01"))
+pop_bc <- 5147712
+pop_ha <- readRDS("population_ha.RDS")
+pop_age <- readRDS("population_age.RDS")
+
 cases <- dat %>%
   count(Date, name = "Cases")
 cases_ha <- dat %>% 
@@ -28,14 +32,17 @@ cases_ha <- dat %>%
 cases_ha <- cases_ha %>%
   tidyr::expand(Date, HA) %>%
   left_join(cases_ha) %>%
-  mutate(Cases = coalesce(Cases, 0)) %>%
-  group_by(HA)
+  mutate(Cases = coalesce(Cases, 0)) %>% 
+  left_join(pop_ha) %>%
+  group_by(HA) 
+
 cases_age <- dat %>%
   count(Date, Age, name = "Cases")
 cases_age <- cases_age %>%
   tidyr::expand(Date, Age) %>%
   left_join(cases_age) %>%
   mutate(Cases = coalesce(Cases, 0)) %>%
+  left_join(pop_age) %>%
   group_by(Age)
 theme_set(theme_bw(base_family = "Times", base_size = 16))
 log10_breaks = c(0,2,5,10,25,50,100,250,500,1000,2500,5000)
@@ -102,17 +109,20 @@ daily <- function(x) decimal_date(x) * 365
 recent_cases <- cases %>% 
   filter(Date >= Sys.Date() - n_recent) %>%
   mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
-         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1)
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1,
+         ps = my_smooth(daily(Date), Cases / pop_bc * 1e5, deg = 0L)$fit)
 
 recent_ha <- cases_ha %>% 
   filter(Date >= Sys.Date() - n_recent) %>%
   mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
-         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit)-1)
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit)-1,
+         ps = my_smooth(daily(Date), Cases / pop * 1e5, deg = 0L)$fit)
 
 recent_age <- cases_age %>%
   filter(Age != "Unknown", Date >= Sys.Date() - n_recent) %>%
   mutate(s = my_smooth(daily(Date), Cases, deg = 0L)$fit,
-         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1)
+         ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L)$fit) - 1,
+         ps = my_smooth(daily(Date), Cases / pop * 1e5, deg = 0L)$fit)
 ```
 
 ## All BC {.tabset}
@@ -140,20 +150,25 @@ ggplot(recent_cases, aes(Date, Cases)) +
 
 ### Per capita
 
+```{r}
+ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
+  ylab("Cases per 100K population")
+```
+
 
 ## By Health Authority {.tabset}
 
 
 ### Raw
+
 ```{r}
 ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
   geom_point(shape = 16, alpha = .4) +
   geom_line(aes(y = s), size = 1.5) +
   scale_colour_brewer(palette = "Set1") +
   theme(legend.title = element_blank(), legend.position = "bottom")
-
-pop <- read.csv("https://raw.githubusercontent.com/mountainMath/BCCovidSnippets/main/data/ha_pop.csv")
-
 ```
 
 ### Log scale
@@ -170,6 +185,18 @@ ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
 ```
 
 ### Per capita
+
+```{r}
+ggplot(recent_ha, 
+       aes(Date, Cases / pop * 1e5, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ps), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  ylab("Cases per 100K population") +
+  theme(legend.title = element_blank(), legend.position = "bottom")
+```
+
+
 
 ## By Age Group {.tabset}
 
@@ -200,8 +227,14 @@ ggplot(recent_age, aes(Date, Cases, colour = Age)) +
 
 ### Per capita
 
-
-<hr/>
+```{r}
+ggplot(recent_age, aes(Date, Cases / pop * 1e5, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ps), size = 1.5) +
+  scale_colour_viridis_d() +
+  ylab("Cases per 100K population") +
+  theme(legend.title = element_blank(), legend.position = "bottom")
+```
 
 # Since March 2020 {.tabset}
 
@@ -211,20 +244,26 @@ all_cases <- cases %>%
     s = my_smooth(daily(Date), Cases, deg = 0L, 
                   minband = 14, maxband = 35)$fit,
     ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
-                       minband = 14, maxband = 35)$fit) - 1)
+                       minband = 14, maxband = 35)$fit) - 1,
+    ps = my_smooth(daily(Date), Cases / pop_bc * 1e5, deg = 0L,
+                   minband = 14, maxband = 35)$fit)
 all_ha <- cases_ha %>% 
   mutate(
     s = my_smooth(daily(Date), Cases, deg = 0L, 
                   minband = 14, maxband = 35)$fit,
     ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
-                       minband = 14, maxband = 35)$fit) - 1)
+                       minband = 14, maxband = 35)$fit) - 1,
+    ps = my_smooth(daily(Date), Cases / pop * 1e5, deg = 0L,
+                   minband = 14, maxband = 35)$fit)
 all_age <- cases_age %>%
   filter(Age != "Unknown") %>%
   mutate(
     s = my_smooth(daily(Date), Cases, deg = 0L, 
                   minband = 14, maxband = 35)$fit,
     ls = 10^(my_smooth(daily(Date), log10(Cases + 1), deg = 0L,
-                       minband = 14, maxband = 35)$fit) - 1)
+                       minband = 14, maxband = 35)$fit) - 1,
+    ps = my_smooth(daily(Date), Cases / pop * 1e5, deg = 0L,
+                   minband = 14, maxband = 35)$fit)
 ```
 
 
@@ -252,6 +291,15 @@ ggplot(all_cases, aes(Date, Cases)) +
 ```
 
 ### Per capita
+
+```{r}
+ggplot(all_cases, aes(Date, Cases / pop_bc * 1e5)) +
+  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
+  ylab("Cases per 100K population")
+```
+
 
 ## By Health Authority {.tabset}
 
@@ -281,6 +329,17 @@ ggplot(all_ha, aes(Date, Cases, colour = HA)) +
 ```
 
 ### Per capita
+
+```{r}
+ggplot(all_ha, aes(Date, Cases / pop * 1e5, colour = HA)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ps), size = 1.5) +
+  scale_colour_brewer(palette = "Set1") +
+  theme(legend.title = element_blank(), legend.position = "bottom") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
+  ylab("Cases per 100K population")
+```
+
 
 ## By Age Group {.tabset}
 
@@ -314,3 +373,13 @@ ggplot(all_age, aes(Date, Cases, colour = Age)) +
 
 ### Per capita
 
+```{r}
+ggplot(all_age, aes(Date, Cases / pop * 1e5, colour = Age)) +
+  geom_point(shape = 16, alpha = .4) +
+  geom_line(aes(y = ps), size = 1.5) +
+  scale_colour_viridis_d() + 
+  theme(legend.title = element_blank(),
+        legend.position = "bottom") +
+  ylab("Cases per 100K population") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+```
