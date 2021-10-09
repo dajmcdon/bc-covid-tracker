@@ -73,6 +73,7 @@ my_ks <- function(x, y, band = 14, deg = 0L) {
   out
 }
 
+
 my_smooth <- function(x, y, 
                       minband = 7, deg = 1L, maxband = 21, nbands = 25,
                       best = c("bands.1se", "bands.min")) {
