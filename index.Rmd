@@ -14,6 +14,8 @@ library(lubridate)
 library(ggplot2)
 library(tidyr)
 library(scales)
+library(plotly)
+library(withr)
 n_recent <- 90
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4, echo = FALSE)
 dat <- get_british_columbia_case_data() %>%
@@ -131,9 +133,11 @@ recent_age <- cases_age %>%
 ### Raw
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
+raw.bc.plot <- ggplot(recent_cases, aes(Date, Cases)) +
   geom_point(colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=s), size = 1.5, colour = "darkblue")
+ggplotly(raw.bc.plot, tooltip = c("Date", "Cases", "s"))
+
 ```
 
 ### Log scale 
