@@ -134,21 +134,38 @@ recent_age <- cases_age %>%
 
 ```{r}
 raw.bc.plot <- ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
+  geom_point(aes(y=Cases),colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=s), size = 1.5, colour = "darkblue")
-ggplotly(raw.bc.plot, tooltip = c("Date", "Cases", "s"))
 
+# This ggplotly solution feels unsatisfactory. A more elegant approach is appreciated.
+
+# Convert to ggplotly.
+raw.bc.plotly <- ggplotly(raw.bc.plot, tooltip = c("Date", "Cases"))
+
+# raw.bc.plotly$x$data contains two items. The first tracks the data for the points. The second tracks the data for the smoother. This line creates a custom tooltip by extracting items from the second.
+rol.avg.tool <- paste(raw.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(raw.bc.plotly$x$data[[2]]$y,2))
+
+# Put custom tooltip in for the smoother (traces = 2).
+raw.bc.plotly %>% style(text=rol.avg.tool, traces=2)
 ```
 
 ### Log scale 
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
+log.bc.plot <- ggplot(recent_cases, aes(Date, Cases)) +
+  geom_point(aes(y=Cases), colour = "darkblue", shape = 16, alpha = .4) +
+  geom_line(aes(y=ls), size = 1.5, colour = "darkblue") +
   scale_y_continuous(trans = pseudo_log_trans(base = 10), 
                      breaks = log10_breaks) +
   ylab("Cases (log scale)")
+
+log.bc.plotly <- ggplotly(log.bc.plot, tooltip = c("Date", "Cases"))
+
+# The ggplotly object contains scaled coordinates so I took the log smoother values from recent_cases. I don't like it because I'm not pulling things from the ggplotly object itself.
+lra.tool <- paste(log.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(recent_cases$ls,2))
+
+log.bc.plotly %>% style(text = lra.tool, traces = 2)
+
 ```
 
 
@@ -156,10 +173,20 @@ ggplot(recent_cases, aes(Date, Cases)) +
 ### Per capita
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
+cap.bc.plot <- ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
   geom_point(colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
   ylab("Cases per 100K population")
+
+cap.bc.plotly <- ggplotly(cap.bc.plot)
+
+cpc.tool <- paste(recent_cases$Date, "<br>Cases per capita: ", round(cap.bc.plotly$x$data[[1]]$y,2))
+
+cra.tool <- paste(raw.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(cap.bc.plotly$x$data[[2]]$y,2))
+
+cap.bc.plotly %>%
+  style(text=cpc.tool, traces=1) %>% 
+  style(text=cra.tool, traces=2)
 ```
 
 
