@@ -103,6 +103,36 @@ my_smooth <- function(x, y,
 daily <- function(x) decimal_date(x) * 365
 ```
 
+```{r}
+tooltip.maker <- function(time = c("recent", "all"), is.s = T, scale = c("raw", "log", "cap"), by = c("all", "ha", "age"), item = NULL) {
+  if (by == "all") {
+    if (time == "recent") data <- recent_cases
+    if (time == "all") data <- all_cases
+    if (is.s & scale == "raw") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$s,2)))
+    if (is.s & scale == "log") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ls,2)))
+    if (is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ps,2)))
+    if (!is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Cases per 100K: ", round(data$Cases / pop_bc * 1e5, 2)))
+  }
+  
+  if (by == "ha") {
+    if (time == "recent") data <- recent_ha[recent_ha$HA == item,]
+    if (time == "all") data <- all_ha[all_ha$HA == item,]
+    if (is.s & scale == "raw") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$s,2), "<br>HA: ", item))
+    if (is.s & scale == "log") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ls,2), "<br>HA: ", item))
+    if (is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ps,2), "<br>HA: ", item))
+    if (!is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Cases per 100K: ", round(data$Cases / pop_ha$pop[pop_ha$HA == item] * 1e5, 2), "<br>HA: ", item))
+  }
+  
+  if (by == "age") {
+    if (time == "recent") data <- recent_age[recent_age$Age == item,]
+    if (time == "all") data <- all_age[all_age$Age == item,]
+    if (is.s & scale == "raw") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$s,2), "<br>Age: ", item))
+    if (is.s & scale == "log") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ls,2), "<br>Age: ", item))
+    if (is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Smoother: ", round(data$ps,2), "<br>Age: ", item))
+    if (!is.s & scale == "cap") return(paste("Date: ", data$Date, "<br>Cases per 100K: ", round(data$Cases / pop_age$pop[pop_age$Age == item] * 1e5, 2), "<br>Age: ", item))
+  }
+}
+```
 
 
 
@@ -133,38 +163,24 @@ recent_age <- cases_age %>%
 ### Raw
 
 ```{r}
-raw.bc.plot <- ggplot(recent_cases, aes(Date, Cases)) +
+(ggplot(recent_cases, aes(Date, Cases)) +
   geom_point(aes(y=Cases),colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue")
-
-# This ggplotly solution feels unsatisfactory. A more elegant approach is appreciated.
-
-# Convert to ggplotly.
-raw.bc.plotly <- ggplotly(raw.bc.plot, tooltip = c("Date", "Cases"))
-
-# raw.bc.plotly$x$data contains two items. The first tracks the data for the points. The second tracks the data for the smoother. This line creates a custom tooltip by extracting items from the second.
-rol.avg.tool <- paste(raw.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(raw.bc.plotly$x$data[[2]]$y,2))
-
-# Put custom tooltip in for the smoother (traces = 2).
-raw.bc.plotly %>% style(text=rol.avg.tool, traces=2)
+  geom_line(aes(y=s), size = 1.5, colour = "darkblue")) %>%
+  ggplotly(tooltip = c("Date", "Cases")) %>%
+  style(text = tooltip.maker("recent", T, "raw", "all"), traces=2)
 ```
 
 ### Log scale 
 
 ```{r}
-log.bc.plot <- ggplot(recent_cases, aes(Date, Cases)) +
+(ggplot(recent_cases, aes(Date, Cases)) +
   geom_point(aes(y=Cases), colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=ls), size = 1.5, colour = "darkblue") +
   scale_y_continuous(trans = pseudo_log_trans(base = 10), 
                      breaks = log10_breaks) +
-  ylab("Cases (log scale)")
-
-log.bc.plotly <- ggplotly(log.bc.plot, tooltip = c("Date", "Cases"))
-
-# The ggplotly object contains scaled coordinates so I took the log smoother values from recent_cases. I don't like it because I'm not pulling things from the ggplotly object itself.
-lra.tool <- paste(log.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(recent_cases$ls,2))
-
-log.bc.plotly %>% style(text = lra.tool, traces = 2)
+  ylab("Cases (log scale)")) %>%
+  ggplotly(tooltip = c("Date", "Cases")) %>%
+  style(text = tooltip.maker("recent", T, "log", "all"), traces = 2)
 
 ```
 
@@ -173,20 +189,13 @@ log.bc.plotly %>% style(text = lra.tool, traces = 2)
 ### Per capita
 
 ```{r}
-cap.bc.plot <- ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
+(ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
   geom_point(colour = "darkblue", shape = 16, alpha = .4) +
   geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
-  ylab("Cases per 100K population")
-
-cap.bc.plotly <- ggplotly(cap.bc.plot)
-
-cpc.tool <- paste(recent_cases$Date, "<br>Cases per capita: ", round(cap.bc.plotly$x$data[[1]]$y,2))
-
-cra.tool <- paste(raw.bc.plotly$x$data[[2]]$text, "<br>Rolling average: ", round(cap.bc.plotly$x$data[[2]]$y,2))
-
-cap.bc.plotly %>%
-  style(text=cpc.tool, traces=1) %>% 
-  style(text=cra.tool, traces=2)
+  ylab("Cases per 100K population")) %>%
+  ggplotly() %>%
+  style(text = tooltip.maker("recent", F, "cap", "all"), traces=1) %>% 
+  style(text = tooltip.maker("recent", T, "cap", "all"), traces=2)
 ```
 
 
@@ -196,36 +205,62 @@ cap.bc.plotly %>%
 ### Raw
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
+s.tooltip.ha <- function(ha) paste("Date: ", recent_ha$Date[recent_ha$HA == ha], "<br>Smoother: ", round(recent_ha$s[recent_ha$HA == ha],2), "<br>HA: ", ha)
+
+(ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
+  geom_point(aes(y = Cases), shape = 16, alpha = .4) +
   geom_line(aes(y = s), size = 1.5) +
   scale_colour_brewer(palette = "Set1") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+  theme(legend.title = element_blank(), legend.position = "bottom")) %>%
+  ggplotly(tooltip = c("Date", "Cases", "HA")) %>%
+  style(text = tooltip.maker("recent", T, "raw", "ha", "Fraser"), traces = 6) %>%
+  style(text = tooltip.maker("recent", T, "raw", "ha", "Interior"), traces = 7) %>%
+  style(text = tooltip.maker("recent", T, "raw", "ha", "Northern"), traces = 8) %>%
+  style(text = tooltip.maker("recent", T, "raw", "ha", "Vancouver Coastal"), traces = 9) %>%
+  style(text = tooltip.maker("recent", T, "raw", "ha", "Vancouver Island"), traces = 10)
+
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
+(ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
   geom_point(shape = 16, alpha = .4) +
   geom_line(aes(y = ls), size = 1.5) +
   scale_colour_brewer(palette = "Set1") +
   scale_y_continuous(trans = pseudo_log_trans(base = 10), 
                      breaks = log10_breaks) +
   ylab("Cases (log scale)") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+  theme(legend.title = element_blank(), legend.position = "bottom")) %>%
+  ggplotly(tooltip = c("Date", "Cases", "HA")) %>%
+  style(text = tooltip.maker("recent", T, "log", "ha", "Fraser"), traces = 6) %>%
+  style(text = tooltip.maker("recent", T, "log", "ha", "Interior"), traces = 7) %>%
+  style(text = tooltip.maker("recent", T, "log", "ha", "Northern"), traces = 8) %>%
+  style(text = tooltip.maker("recent", T, "log", "ha", "Vancouver Coastal"), traces = 9) %>%
+  style(text = tooltip.maker("recent", T, "log", "ha", "Vancouver Island"), traces = 10)
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(recent_ha, 
+(ggplot(recent_ha, 
        aes(Date, Cases / pop * 1e5, colour = HA)) +
   geom_point(shape = 16, alpha = .4) +
   geom_line(aes(y = ps), size = 1.5) +
   scale_colour_brewer(palette = "Set1") +
   ylab("Cases per 100K population") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+  theme(legend.title = element_blank(), legend.position = "bottom")) %>%
+  ggplotly(tooltip = c("Date", "Cases", "HA")) %>%
+  style(text = tooltip.maker("recent", F, "cap", "ha", "Fraser"), traces = 1) %>%
+  style(text = tooltip.maker("recent", F, "cap", "ha", "Interior"), traces = 2) %>%
+  style(text = tooltip.maker("recent", F, "cap", "ha", "Northern"), traces = 3) %>%
+  style(text = tooltip.maker("recent", F, "cap", "ha", "Vancouver Coastal"), traces = 4) %>%
+  style(text = tooltip.maker("recent", F, "cap", "ha", "Vancouver Island"), traces = 5) %>%
+  style(text = tooltip.maker("recent", T, "cap", "ha", "Fraser"), traces = 6) %>%
+  style(text = tooltip.maker("recent", T, "cap", "ha", "Interior"), traces = 7) %>%
+  style(text = tooltip.maker("recent", T, "cap", "ha", "Northern"), traces = 8) %>%
+  style(text = tooltip.maker("recent", T, "cap", "ha", "Vancouver Coastal"), traces = 9) %>%
+  style(text = tooltip.maker("recent", T, "cap", "ha", "Vancouver Island"), traces = 10)
 ```
 
 
@@ -235,12 +270,14 @@ ggplot(recent_ha,
 ### Raw 
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
+(ggplot(recent_age, aes(Date, Cases, colour = Age)) +
+  geom_point(aes(y = Cases), shape = 16, alpha = .4) +
   geom_line(aes(y = s), size = 1.5) +
   scale_colour_viridis_d() +
   theme(legend.title = element_blank(),
-        legend.position = "bottom")
+        legend.position = "bottom")) %>%
+  ggplotly() %>%
+  style(text = tooltip.maker("recent", T, "raw", "age", "<10"), traces = 11)
 ```
 
 ### Log scale
