@@ -4,7 +4,7 @@ on:
   push:
     paths: ['**.Rmd']
   schedule:
-    - cron: '30 11,23 * * *' # should build at 430, 1630 PDT
+    - cron: '30 0,12 * * *' # should build at 430, 1630 PDT
 
 name: render-rmarkdown
 
@@ -20,6 +20,13 @@ jobs:
           fetch-depth: 0
       - name: Setup pandoc
         uses: r-lib/actions/setup-pandoc@v1
+      - name: "[macOS] Install spatial libraries"
+        if: runner.os == 'macOS'
+        run: |
+          # conflicts with gfortran from r-lib/actions when linking gcc
+          #rm '/usr/local/bin/gfortran'
+          brew install udunits
+          brew install pkg-config gdal proj geos udunits
       - name: Setup R
         uses: r-lib/actions/setup-r@v1
       - name: Install remotes package
