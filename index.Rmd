@@ -17,6 +17,7 @@ library(scales)
 library(plotly)
 library(withr)
 
+
 n_recent <- 90
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4, echo = FALSE)
 dat <- get_british_columbia_case_data() %>%
