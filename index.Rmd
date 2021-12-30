@@ -14,6 +14,8 @@ library(lubridate)
 library(ggplot2)
 library(tidyr)
 library(scales)
+library(plotly)
+source("ploting.R")
 n_recent <- 90
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4, echo = FALSE)
 dat <- get_british_columbia_case_data() %>%
@@ -131,20 +133,13 @@ recent_age <- cases_age %>%
 ### Raw
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue")
+plotcovid(recent_cases, "none", "all", "recent")
 ```
 
 ### Log scale 
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)")
+plotcovid(recent_cases, "log_scale", "all", "recent")
 ```
 
 
@@ -152,10 +147,7 @@ ggplot(recent_cases, aes(Date, Cases)) +
 ### Per capita
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
-  ylab("Cases per 100K population")
+plotcovid(recent_cases, "per_capita", "all", "recent")
 ```
 
 
@@ -165,11 +157,7 @@ ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
 ### Raw
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "none", "health_authority", "recent")
 ```
 
 ### Log scale
