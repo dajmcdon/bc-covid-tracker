@@ -29,20 +29,22 @@ plotcovid <- function (data,
     all = ggplot(data, aes(Date, Cases)) +
       geom_point(colour = "darkblue", shape = 16, alpha = .4) +
       geom_line(aes_string(y = scale_y, group = 1,
-                text = "paste0(\"Rolling average: \", round(smoother,2))"),
+                text = "paste0(\"Smoother: \", round(smoother,2))"),
                 size = 1.5, colour = "darkblue"),
     
     health_authority = ggplot(data, aes(Date, Cases, colour = HA)) +
       geom_point(shape = 16, alpha = .4) +
-      geom_line(aes_string(y = scale_y, group = "HA",
-                           text = "paste0(\"Rolling average: \", round(smoother,2))"),
+      geom_line(aes_string(y = scale_y, group = "1",
+                           text = "paste0(\"Smoother: \", round(smoother,2))"),
                 size = 1.5) +
       scale_colour_brewer(palette = "Set1") +
       theme(legend.title = element_blank(), legend.position = "bottom"),
     
     age = ggplot(data, aes(Date, Cases, colour = Age)) +
       geom_point(shape = 16, alpha = .4) +
-      geom_line(aes_string(y = scale_y), size = 1.5) +
+      geom_line(aes_string(y = scale_y, group = "1",
+                           text = "paste0(\"Smoother: \", round(smoother,2))"),
+                size = 1.5) +
       scale_colour_viridis_d() +
       theme(legend.title = element_blank(),
             legend.position = "bottom")
@@ -67,5 +69,6 @@ plotcovid <- function (data,
   
   switch(subgroups,
          all = p %>% ggplotly(tooltip = c("Date","Cases","text")),
-         health_authority = p %>% ggplotly(tooltip = c("Date","Cases","HA","text")))
+         health_authority = p %>% ggplotly(tooltip = c("Date","Cases","HA","text")),
+         age = p %>% ggplotly(tooltip = c("Date","Cases","Age","text")))
 }

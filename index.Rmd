@@ -163,26 +163,13 @@ plotcovid(recent_ha, "none", "health_authority", "recent")
 ### Log scale
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "log_scale", "health_authority", "recent")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(recent_ha, 
-       aes(Date, Cases / pop * 1e5, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  ylab("Cases per 100K population") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "per_capita", "health_authority", "recent")
 ```
 
 
@@ -192,37 +179,19 @@ ggplot(recent_ha,
 ### Raw 
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_viridis_d() +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom")
+plotcovid(recent_age, "none", "age", "recent")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_viridis_d() + 
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom") +
-  ylab("Cases (log scale)")
+plotcovid(recent_age, "log_scale", "age", "recent")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases / pop * 1e5, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_viridis_d() +
-  ylab("Cases per 100K population") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_age, "per_capita", "age", "recent")
 ```
 
 # Since March 2020 {.tabset}
