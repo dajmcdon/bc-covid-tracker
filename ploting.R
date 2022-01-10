@@ -5,6 +5,13 @@ plotcovid <- function (data,
   scale_y <- match.arg(scale_y)
   subgroups <- match.arg(subgroups)
   
+  smoother <- switch (
+    scale_y,
+    none = data$s,
+    log_scale = data$ls,
+    per_capita = data$ps
+  )
+  
   scale_y <- switch (
     scale_y,
     none = "s",
@@ -20,18 +27,27 @@ plotcovid <- function (data,
   
   p <- switch (subgroups,
     all = ggplot(data, aes(Date, Cases)) +
-      geom_point(colour = "darkblue", shape = 16,alpha = .4) +
-      geom_line(aes_string(y = scale_y), size = 1.5, colour = "darkblue"),
+      geom_point(aes(y = Cases, text = paste0("Cases: ", round(Cases,2))),
+                 colour = "darkblue", shape = 16, alpha = .4) +
+      geom_line(aes_string(y = scale_y, group = 1,
+                text = "paste0(\"Smoother: \", round(smoother,2))"),
+                size = 1.5, colour = "darkblue"),
     
     health_authority = ggplot(data, aes(Date, Cases, colour = HA)) +
-      geom_point(shape = 16, alpha = .4) +
-      geom_line(aes_string(y = scale_y), size = 1.5) +
+      geom_point(aes(y = Cases, text = paste0("Cases: ", round(Cases,2))),
+                 shape = 16, alpha = .4) +
+      geom_line(aes_string(y = scale_y, group = "1",
+                           text = "paste0(\"Smoother: \", round(smoother,2))"),
+                size = 1.5) +
       scale_colour_brewer(palette = "Set1") +
       theme(legend.title = element_blank(), legend.position = "bottom"),
     
     age = ggplot(data, aes(Date, Cases, colour = Age)) +
-      geom_point(shape = 16, alpha = .4) +
-      geom_line(aes_string(y = scale_y), size = 1.5) +
+      geom_point(aes(y = Cases, text = paste0("Cases: ", round(Cases,2))),
+                 shape = 16, alpha = .4) +
+      geom_line(aes_string(y = scale_y, group = "1",
+                           text = "paste0(\"Smoother: \", round(smoother,2))"),
+                size = 1.5) +
       scale_colour_viridis_d() +
       theme(legend.title = element_blank(),
             legend.position = "bottom")
@@ -53,5 +69,9 @@ plotcovid <- function (data,
     all = p + scale_x_date(date_breaks = "3 months", date_labels = "%b %Y"),
     recent = p
   )
-  p 
+  
+  switch(subgroups,
+         all = p %>% ggplotly(tooltip = c("Date","text")),
+         health_authority = p %>% ggplotly(tooltip = c("Date","HA","text")),
+         age = p %>% ggplotly(tooltip = c("Date","Age","text")))
 }

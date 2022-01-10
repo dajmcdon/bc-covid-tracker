@@ -14,6 +14,8 @@ library(lubridate)
 library(ggplot2)
 library(tidyr)
 library(scales)
+library(plotly)
+source("ploting.R")
 n_recent <- 90
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4, echo = FALSE)
 dat <- get_british_columbia_case_data() %>%
@@ -131,20 +133,13 @@ recent_age <- cases_age %>%
 ### Raw
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue")
+plotcovid(recent_cases, "none", "all", "recent")
 ```
 
 ### Log scale 
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)")
+plotcovid(recent_cases, "log_scale", "all", "recent")
 ```
 
 
@@ -152,10 +147,7 @@ ggplot(recent_cases, aes(Date, Cases)) +
 ### Per capita
 
 ```{r}
-ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
-  ylab("Cases per 100K population")
+plotcovid(recent_cases, "per_capita", "all", "recent")
 ```
 
 
@@ -165,36 +157,19 @@ ggplot(recent_cases, aes(Date, Cases / pop_bc * 1e5)) +
 ### Raw
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "none", "health_authority", "recent")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(recent_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "log_scale", "health_authority", "recent")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(recent_ha, 
-       aes(Date, Cases / pop * 1e5, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  ylab("Cases per 100K population") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_ha, "per_capita", "health_authority", "recent")
 ```
 
 
@@ -204,37 +179,19 @@ ggplot(recent_ha,
 ### Raw 
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_viridis_d() +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom")
+plotcovid(recent_age, "none", "age", "recent")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_viridis_d() + 
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom") +
-  ylab("Cases (log scale)")
+plotcovid(recent_age, "log_scale", "age", "recent")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(recent_age, aes(Date, Cases / pop * 1e5, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_viridis_d() +
-  ylab("Cases per 100K population") +
-  theme(legend.title = element_blank(), legend.position = "bottom")
+plotcovid(recent_age, "per_capita", "age", "recent")
 ```
 
 # Since March 2020 {.tabset}
@@ -273,32 +230,19 @@ all_age <- cases_age %>%
 ### Raw scale
 
 ```{r}
-ggplot(all_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_cases, "none", "all", "all")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(all_cases, aes(Date, Cases)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=s), size = 1.5, colour = "darkblue") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_cases, "log_scale", "all", "all")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(all_cases, aes(Date, Cases / pop_bc * 1e5)) +
-  geom_point(colour = "darkblue", shape = 16, alpha = .4) +
-  geom_line(aes(y=ps), size = 1.5, colour = "darkblue") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
-  ylab("Cases per 100K population")
+plotcovid(all_cases, "per_capita", "all", "all")
 ```
 
 
@@ -307,38 +251,19 @@ ggplot(all_cases, aes(Date, Cases / pop_bc * 1e5)) +
 ### Raw
 
 ```{r}
-ggplot(all_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_ha, "none", "health_authority", "all")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(all_ha, aes(Date, Cases, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  ylab("Cases (log scale)") +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_ha, "log_scale", "health_authority", "all")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(all_ha, aes(Date, Cases / pop * 1e5, colour = HA)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_brewer(palette = "Set1") +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
-  ylab("Cases per 100K population")
+plotcovid(all_ha, "per_capita", "health_authority", "all")
 ```
 
 
@@ -347,40 +272,17 @@ ggplot(all_ha, aes(Date, Cases / pop * 1e5, colour = HA)) +
 ### Raw
 
 ```{r}
-
-ggplot(all_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = s), size = 1.5) +
-  scale_colour_viridis_d() +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_age, "none", "age", "all")
 ```
 
 ### Log scale
 
 ```{r}
-ggplot(all_age, aes(Date, Cases, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ls), size = 1.5) +
-  scale_colour_viridis_d() + 
-  scale_y_continuous(trans = pseudo_log_trans(base = 10), 
-                     breaks = log10_breaks) +
-  theme(legend.title = element_blank(),
-        legend.position = "bottom") +
-  ylab("Cases (log scale)") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_age, "log_scale", "age", "all")
 ```
 
 ### Per capita
 
 ```{r}
-ggplot(all_age, aes(Date, Cases / pop * 1e5, colour = Age)) +
-  geom_point(shape = 16, alpha = .4) +
-  geom_line(aes(y = ps), size = 1.5) +
-  scale_colour_viridis_d() + 
-  theme(legend.title = element_blank(),
-        legend.position = "bottom") +
-  ylab("Cases per 100K population") +
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y")
+plotcovid(all_age, "per_capita", "age", "all")
 ```
