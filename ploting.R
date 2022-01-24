@@ -5,6 +5,7 @@ plotcovid <- function (data,
   scale_y <- match.arg(scale_y)
   subgroups <- match.arg(subgroups)
   
+  
   smoother <- switch (
     scale_y,
     none = data$s,
